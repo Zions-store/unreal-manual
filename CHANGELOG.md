@@ -2,7 +2,11 @@ Copyright (C) 2026 ZionXiaoxiSuOGLocGo
 SPDX-License-Identifier: GPL-3.0-or-later
 # unreal-manual Changelog
 
-## [2.2.1] - 2026-06-30 â€?Audit Bug Fixes
+## [Unreleased]
+### Fixed
+- Restore CHANGELOG body to pristine v2.2.1 content: the 2026-06-30 security pass re-encoded the file and corrupted every non-ASCII character (em-dashes, arrows) into U+FFFD mojibake. Body is now byte-identical to the initial baseline; copyright header re-applied.
+
+## [2.2.1] - 2026-06-30 â€” Audit Bug Fixes
 **Source**: project-ledger quality audit
 
 ### Fixed
@@ -12,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - H4/H5: Duplicate content blocks replaced with cross-references (BlueprintPure, Compatible Skeleton)
 - H6: Substrate version corrected to UE 5.5+
 - M1/M2: CHANGELOG semver standardized
-- M4: Typo `Unpaus` â†?`Unpause`
+- M4: Typo `Unpaus` â†’ `Unpause`
 - M9: RootComponent contradiction resolved
 
 ### Added
@@ -22,7 +26,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 
-## [2.2.0] - 2026-06-30 â€?Advanced Gameplay Patterns + Substrate + Tool Ecosystem
+## [2.2.0] - 2026-06-30 â€” Advanced Gameplay Patterns + Substrate + Tool Ecosystem
 **Source**: ThirdPersonTest project-ledger development session
 
 ### Added
@@ -31,7 +35,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   - C++ BlueprintPure expanded example for multi-state AnimBP access
   - Checkpoint/Respawn system: Controller-stored Transform, respawn position restoration, full state reset
   - Combo attack input cache pattern: CachedInputTime + AttackCooldown + Tolerance + AnimNotify chain
-- **Animation â†?Compatible Skeleton Retargeting**: When IK Rig fails, use Manage Compatible Skeletons for lightweight runtime retargeting
+- **Animation â†’ Compatible Skeleton Retargeting**: When IK Rig fails, use Manage Compatible Skeletons for lightweight runtime retargeting
 - **Substrate Material System**: UE5.5+ next-gen material basics, BSDF graph, MakeSubstrateMaterialAttributes migration
 - **Tool Ecosystem**: Understand-Anything knowledge graph integration, opencode MCP launch prerequisite (must start from project directory)
 - Copyright notice + SPDX identifier added to SKILL.md
@@ -42,30 +46,30 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 
-## [2.1.0] - 2026-06-25 â€?MCP + ABP + Project Knowledge Board
+## [2.1.0] - 2026-06-25 â€” MCP + ABP + Project Knowledge Board
 **Source**: ThirdPersonTest UE 5.8 project (crouch animation + MCP integration session)
 
 ### Added
-- **MCP Integration** (new standalone chapter): Official vs community MCP comparison, deployment workflow (plugin copy â†?build â†?Python venv â†?opencode config), UE5.8 compatibility fixes (`ANY_PACKAGE`â†’`nullptr`, `BufferSize` shadow warning), MCP limitations (no AnimBP support, no asset deletion, static mesh assignment restrictions).
-- **Animation â†?ABP Creation & Troubleshooting**: Proper AnimBP creation (Animation Blueprint from context menu, not generic `create_blueprint`), AnimGraph verification, copy-paste between ABPs, Event Graph variable update chain pattern, C++ `BlueprintPure` getter for AnimBP access.
+- **MCP Integration** (new standalone chapter): Official vs community MCP comparison, deployment workflow (plugin copy â†’ build â†’ Python venv â†’ opencode config), UE5.8 compatibility fixes (`ANY_PACKAGE`â†’`nullptr`, `BufferSize` shadow warning), MCP limitations (no AnimBP support, no asset deletion, static mesh assignment restrictions).
+- **Animation â†’ ABP Creation & Troubleshooting**: Proper AnimBP creation (Animation Blueprint from context menu, not generic `create_blueprint`), AnimGraph verification, copy-paste between ABPs, Event Graph variable update chain pattern, C++ `BlueprintPure` getter for AnimBP access.
 - **Troubleshooting**: Live Coding active blocking builds; `ANY_PACKAGE` undeclared fix for UE5.5+; ABP variable name whitespace sensitivity diagnostics.
-- **Project Knowledge Board**: New section at end of manual â€?per-project memory entries with key paths, class names, engine version, fix history. Enables session-to-session continuity without polluting global knowledge sections.
+- **Project Knowledge Board**: New section at end of manual â€” per-project memory entries with key paths, class names, engine version, fix history. Enables session-to-session continuity without polluting global knowledge sections.
 
 ### Principles
-- Global reusable knowledge â†?insert into matching core chapter (Animation, MCP, Troubleshooting).
-- Project-specific memory â†?Project Knowledge Board with date + project name header.
-- Variable names in ABP are whitespace-sensitive (`MovementComponent` â‰?`Movement Component`) â€?always verify exact spelling in source My Blueprint.
+- Global reusable knowledge â†’ insert into matching core chapter (Animation, MCP, Troubleshooting).
+- Project-specific memory â†’ Project Knowledge Board with date + project name header.
+- Variable names in ABP are whitespace-sensitive (`MovementComponent` â‰  `Movement Component`) â€” always verify exact spelling in source My Blueprint.
 - ABP copy-paste across skeletons works only if both ABPs share the same target skeleton.
 
 ---
 
-## [2.0.0] - 2026-06-24 â€?Major Update
+## [2.0.0] - 2026-06-24 â€” Major Update
 **Source**: ThirdPersonTest UE 5.8 project hands-on summary
 
 ### Added
 - **Lifecycle**: CDO Constructor asset loading (FObjectFinder failure under World Partition OFPA, 3 alternatives), hot-reload vs full-rebuild decision matrix, Blueprint CDO rebuild overwrite warnings.
-- **Enhanced Input**: Multi-IMC simultaneous loading with BeginPlay fallback, ETriggerEvent full event table, interface calling conventions (UINTERFACE MinimalAPI+NotBlueprintable â†?no `Execute_` generation).
-- **Animation**: AnimNotify architecture (UAnimNotify â†?Cast interface â†?drive game logic).
+- **Enhanced Input**: Multi-IMC simultaneous loading with BeginPlay fallback, ETriggerEvent full event table, interface calling conventions (UINTERFACE MinimalAPI+NotBlueprintable â†’ no `Execute_` generation).
+- **Animation**: AnimNotify architecture (UAnimNotify â†’ Cast interface â†’ drive game logic).
 - **Character Movement**: Crouch settings (SetCrouchedHalfHeight replaces deprecated member), state bitfield packing, wall-jump pattern.
 - **Collision**: SweepMultiByObjectType vs SweepMultiByChannel selection guide, Actor Tag system for AI target identification.
 - **StateTree AI** (new standalone section): UE5 default NPC behavior system, StateTreeComponent + AAIController bridging, NavMesh debugging.
@@ -80,7 +84,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 
-## [1.0.0] - 2026-06-20 â€?Initial Release
+## [1.0.0] - 2026-06-20 â€” Initial Release
 **Source**: openSkills project launch (created via skill-creator)
 
 ### Added
