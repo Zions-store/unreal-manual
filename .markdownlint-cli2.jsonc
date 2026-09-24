@@ -1,0 +1,22 @@
+{
+  "config": {
+    "default": true,
+
+    "MD013": { "line_length": 250 },
+
+    // General document-convention conflicts with our source-formatting style:
+    // frontmatter-first files with copyright lines after YAML, long table rows,
+    // and CHANGELOG heading/list density.
+    "MD022": false,
+    "MD024": false,
+    "MD029": false,
+    "MD032": false,
+    "MD034": false,
+    "MD040": false,
+    "MD041": false
+  },
+  "ignores": [
+    "**/node_modules/**",
+    "**/.tmp_validation/**"
+  ]
+}
