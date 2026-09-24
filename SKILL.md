@@ -2331,4 +2331,3 @@ Update when:
 - New UE version introduces breaking changes → update version notes
 - User workflow reveals a missing concept → add section
 - Returning to a project → add/update entries in the Project Knowledge Board above
-
