@@ -141,6 +141,7 @@ UObject              ← garbage-collected base (everything is a UObject)
 ### Common Patterns
 
 **C++:**
+
 ```cpp
 // Spawn an actor into the world
 AActor* NewActor = GetWorld()->SpawnActor<AMyActor>(SpawnClass, Location, Rotation);
@@ -206,6 +207,7 @@ In **Project Settings → Maps & Modes**:
 - Default PlayerController → your custom PlayerController
 
 Or in `Config/DefaultEngine.ini`:
+
 ```ini
 [/Script/EngineSettings.GameMapsSettings]
 GameDefaultMap=/Game/Maps/MainLevel
@@ -229,6 +231,7 @@ GameMode exists ONLY on the server. Never access GameMode from client code — u
 5. **EndPlay()** — called when destroyed or level unloads. Cleanup here.
 
 ### C++ Example
+
 ```cpp
 AMyActor::AMyActor()
 {
@@ -380,10 +383,12 @@ How Blueprints talk to each other. Four patterns, increasing complexity:
 ### 1. Direct Reference (simplest)
 
 Drag one Actor into another's Details panel or expose a variable:
+
 ```
 UPROPERTY(EditInstanceOnly)  // pick target in the level editor
 AActor* TargetActor;
 ```
+
 Then call functions on `TargetActor` directly. Works only when both Actors are in the same level.
 
 ### 2. Casting
@@ -673,6 +678,7 @@ FText DisplayName = NSLOCTEXT("MyGame", "StartButton", "Start");
 ```
 
 **Conversions:**
+
 ```cpp
 FString FromName = Name.ToString();
 FString FromText = Text.ToString();  // loses localization info
@@ -798,6 +804,7 @@ UE5 has one unified renderer (unlike Unity's three pipelines), but with scalable
 ### Graphics API
 
 Check `Config/DefaultEngine.ini`:
+
 ```ini
 DefaultGraphicsRHI=DefaultGraphicsRHI_DX12   # DirectX 12 (default UE5)
 ```
@@ -886,6 +893,7 @@ if (bHit)
 ```
 
 **Trace by object type** (more specific):
+
 ```cpp
 FCollisionObjectQueryParams ObjParams;
 ObjParams.AddObjectTypesToQuery(ECC_Pawn); // only hit pawns
@@ -893,12 +901,14 @@ GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ObjParams, Params);
 ```
 
 **Multi-line trace** (hit all objects along the line):
+
 ```cpp
 TArray<FHitResult> Hits;
 GetWorld()->LineTraceMultiByChannel(Hits, Start, End, ECC_Visibility, Params);
 ```
 
 **Shape traces** (sphere, box, capsule):
+
 ```cpp
 // Sphere sweep (like a thick line trace)
 GetWorld()->SweepSingleByChannel(Hit, Start, End, FQuat::Identity,
@@ -951,6 +961,7 @@ GetWorld()->SweepMultiByObjectType(Hits, Start, End, FQuat::Identity, ObjParams,
 ```
 
 **Tag-based target identification:**
+
 ```cpp
 Tags.Add(FName("Player"));  // in player's BeginPlay
 if (HitActor->ActorHasTag(FName("Player"))) { /* apply damage */ }  // in enemy's attack trace
@@ -1032,6 +1043,7 @@ When IK Rig Retarget fails in UE5.8 (Mixamo FBX: no Humanoid dropdown, IK Rig pr
 - Common cached references in ABP: `Character` (Object Reference), `Movement Component` (Character Movement Component). These must exist as local variables for the copied Event Graph to compile.
 
 **Event Graph Variable Update Chain (standard pattern):**
+
 ```
 Event Blueprint Update Animation
   → Sequence
@@ -1041,6 +1053,7 @@ Event Blueprint Update Animation
     → Get Movement Component → Get Current Acceleration → ... → SET Direction
     ... → Get Is Crouched → SET Is Crouched     (custom crouch chain)
 ```
+
 All `SET` nodes are on the Sequence execution chain. `Get` nodes are pure functions (no exec pins), connected by data lines to their targets.
 
 **C++ BlueprintPure for AnimBP access:** See §Advanced Gameplay Patterns → C++ BlueprintPure for Animation Blueprint Access for full example with multi-function pattern and ABP Event Graph flow.
@@ -1174,11 +1187,14 @@ GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 GetCharacterMovement()->SetCrouchedHalfHeight(48.f);  // use setter, not deprecated public member
 ```
 
-Animation side (ABP): `Try Get Pawn Owner` → `Cast to YourCharacter` → `Get Is Crouched` → drive state machine or Blend Poses by Bool. Engine Manny crouch animations at `/Engine/Characters/Mannequins/Animations/Unarmed/Crouch/` (enable Show Engine Content).
+Animation side (ABP): `Try Get Pawn Owner` → `Cast to YourCharacter` → `Get Is Crouched` → drive state machine or
+Blend Poses by Bool. Engine Manny crouch animations at `/Engine/Characters/Mannequins/Animations/Unarmed/Crouch/`
+(enable Show Engine Content).
 
 ### State Bitfields
 
 Combine multiple gameplay states into one byte:
+
 ```cpp
 uint8 bHasWallJumped : 1;
 uint8 bHasDoubleJumped : 1;
@@ -1187,6 +1203,7 @@ uint8 bIsDashing : 1;
 uint8 bIsAttacking : 1;
 uint8 bIsChargingAttack : 1;
 ```
+
 Reset flags on landing: `Landed()` → zero out movement-specific flags.
 
 ---
@@ -1265,12 +1282,14 @@ WComp->SetTwoSided(true);
 **World space** (`EWidgetSpace::World`): rendered in 3D world, participates in depth test (occluded behind geometry), auto-refreshes.
 
 **Updating widget values from C++:**
+
 ```cpp
 // Bypass BP event, directly access child widget by name
 UProgressBar* PB = Cast<UProgressBar>(Widget->GetWidgetFromName(TEXT("Bar")));
 if (PB) PB->SetPercent(0.75f);
 WComp->RequestRedraw();  // required for Screen space
 ```
+
 Widget name is found in the Widget BP Designer → Hierarchy panel.
 
 ---
@@ -1436,6 +1455,7 @@ if (UEnhancedInputLocalPlayerSubsystem* Sub = ULocalPlayer::GetSubsystem<UEnhanc
 ```
 
 If ConstructorHelpers fails (IMC array empty), fallback in `BeginPlay`:
+
 ```cpp
 UInputMappingContext* IMC = LoadObject<UInputMappingContext>(nullptr, TEXT("/Game/Input/IMC_Fused.IMC_Fused"));
 if (IMC) DefaultMappingContexts.Add(IMC);
@@ -1452,6 +1472,7 @@ if (IMC) DefaultMappingContexts.Add(IMC);
 | `Canceled` | Interrupted before completion |
 
 **Typical bindings:**
+
 ```cpp
 BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -1463,11 +1484,14 @@ BindAction(CrouchAction, ETriggerEvent::Started, this, &AMyChar::ToggleCrouch);
 ### Interface Calling Convention
 
 When a `UINTERFACE` uses `MinimalAPI` + `NotBlueprintable`:
+
 ```cpp
 UINTERFACE(MinimalAPI, NotBlueprintable)
 class UCombatDamageable : public UInterface { ... };
 ```
+
 UHT does **NOT** generate `Execute_` helpers. Call directly:
+
 ```cpp
 if (ICombatDamageable* Dmg = Cast<ICombatDamageable>(HitActor))
     Dmg->ApplyDamage(...); // correct
@@ -1859,6 +1883,7 @@ The Model Context Protocol enables AI assistants to control Unreal Editor throug
 2. **Build**: Close editor → `Engine\Build\BatchFiles\Build.bat ProjectEditor Win64 Development -Project="path.uproject" -WaitMutex`
 3. **Python**: `uv venv` in `Plugins/UnrealMCP/Python/` → `uv pip install -e .`
 4. **opencode config** (`~/.config/opencode/opencode.json`):
+
 ```json
 "mcp": {
   "unrealMCP": {
@@ -1944,6 +1969,7 @@ Symptom: Flickering, artifacts, or crash mentioning D3D12.
 **Benign PIE messages:** "StateTree Context Requirements failed", "Recreating Persistent SBTs", "HTTP request timed out", "Failed to load aqProf.dll".
 
 **Debug logging:**
+
 ```cpp
 DEFINE_LOG_CATEGORY(LogMyModule);  // top of .cpp
 UE_LOG(LogMyModule, Log, TEXT("Val: %d, Float: %.1f"), IntVal, FloatVal);
@@ -1961,6 +1987,7 @@ Symptom: `Unable to build while Live Coding is active. Exit the editor and game.
 Symptom: `error C2065: 'ANY_PACKAGE': undeclared identifier`
 
 `ANY_PACKAGE` was removed in UE5.5+. Replace all occurrences with `nullptr`:
+
 ```cpp
 // Before:
 FindObject<UClass>(ANY_PACKAGE, *ClassName);
@@ -1972,7 +1999,9 @@ FindObject<UClass>(nullptr, *ClassName);
 
 Symptom: `Could not find a variable named "X"` during ABP compile after copy-pasting.
 
-UE is whitespace-sensitive in variable names. `MovementComponent` ≠ `Movement Component`. Check the **exact** name in the source ABP's My Blueprint panel and recreate with identical spelling, capitalization, and spacing in the target. Match the Category field too for clean organization.
+UE is whitespace-sensitive in variable names. `MovementComponent` → `Movement Component`. Check the **exact** name in
+the source ABP's My Blueprint panel and recreate with identical spelling, capitalization, and spacing in the target.
+Match the Category field too for clean organization.
 
 ---
 
@@ -2030,6 +2059,7 @@ bool GetIsAttacking() const { return bIsAttacking; }
 ```
 
 In ABP Event Graph:
+
 ```
 Event Blueprint Update Animation
   → Try Get Pawn Owner → Cast to YourCharacter
@@ -2064,6 +2094,7 @@ void RespawnCharacter()
 ```
 
 **Checkpoint Volume (C++):**
+
 ```cpp
 // 200x200 box trigger — on overlap, update controller's RespawnTransform
 void AMyCheckpointVolume::OnOverlap(AActor* Other)
@@ -2108,6 +2139,7 @@ void ComboAttack()
 ```
 
 **AnimNotify chain** (placed on Montage timeline):
+
 ```
 AnimNotify_CheckCombo:  // early in animation
   → if (CachedAttackInputTime within tolerance)
@@ -2196,6 +2228,7 @@ Without this config, LSP reports `CoreMinimal.h not found` on every file — the
 UE's delegate system is used pervasively in engine and gameplay code. Three main types:
 
 ### Single-Cast Delegates
+
 ```cpp
 DECLARE_DELEGATE(FMyDelegate);                              // no params
 DECLARE_DELEGATE_OneParam(FMyIntDelegate, int32);           // one param
@@ -2208,6 +2241,7 @@ MyDelegate.ExecuteIfBound();
 ```
 
 ### Dynamic Delegates (Blueprint-compatible)
+
 ```cpp
 DECLARE_DYNAMIC_DELEGATE(FMyDynDelegate);                   // single-cast, BP-exposed
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);               // multi-cast, BP Event Dispatcher
@@ -2297,3 +2331,4 @@ Update when:
 - New UE version introduces breaking changes → update version notes
 - User workflow reveals a missing concept → add section
 - Returning to a project → add/update entries in the Project Knowledge Board above
+

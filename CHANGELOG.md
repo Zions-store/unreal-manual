@@ -4,7 +4,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ## [Unreleased]
 ### Fixed
-- Restore CHANGELOG body to pristine v2.2.1 content: the 2026-06-30 security pass re-encoded the file and corrupted every non-ASCII character (em-dashes, arrows) into U+FFFD mojibake. Body is now byte-identical to the initial baseline; copyright header re-applied.
+- Restore CHANGELOG body to pristine v2.2.1 content: the 2026-06-30 security pass re-encoded the file and corrupted
+  every non-ASCII character (em-dashes, arrows) into U+FFFD mojibake. Body is now byte-identical to the initial
+  baseline; copyright header re-applied.
 
 ## [2.2.1] - 2026-06-30 — Audit Bug Fixes
 **Source**: project-ledger quality audit
@@ -50,8 +52,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 **Source**: ThirdPersonTest UE 5.8 project (crouch animation + MCP integration session)
 
 ### Added
-- **MCP Integration** (new standalone chapter): Official vs community MCP comparison, deployment workflow (plugin copy → build → Python venv → opencode config), UE5.8 compatibility fixes (`ANY_PACKAGE`→`nullptr`, `BufferSize` shadow warning), MCP limitations (no AnimBP support, no asset deletion, static mesh assignment restrictions).
-- **Animation → ABP Creation & Troubleshooting**: Proper AnimBP creation (Animation Blueprint from context menu, not generic `create_blueprint`), AnimGraph verification, copy-paste between ABPs, Event Graph variable update chain pattern, C++ `BlueprintPure` getter for AnimBP access.
+- **MCP Integration** (new standalone chapter): Official vs community MCP comparison, deployment workflow (plugin copy
+  → build → Python venv → opencode config), UE5.8 compatibility fixes (`ANY_PACKAGE`→`nullptr`, `BufferSize` shadow
+  warning), MCP limitations (no AnimBP support, no asset deletion, static mesh assignment restrictions).
+- **Animation → ABP Creation & Troubleshooting**: Proper AnimBP creation (Animation Blueprint from context menu, not
+  generic `create_blueprint`), AnimGraph verification, copy-paste between ABPs, Event Graph variable update chain
+  pattern, C++ `BlueprintPure` getter for AnimBP access.
 - **Troubleshooting**: Live Coding active blocking builds; `ANY_PACKAGE` undeclared fix for UE5.5+; ABP variable name whitespace sensitivity diagnostics.
 - **Project Knowledge Board**: New section at end of manual — per-project memory entries with key paths, class names, engine version, fix history. Enables session-to-session continuity without polluting global knowledge sections.
 
@@ -88,5 +94,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 **Source**: openSkills project launch (created via skill-creator)
 
 ### Added
-- Unreal Engine core concepts: Actor/Pawn/Character, GameMode/GameState/PlayerController framework, Blueprint vs C++, rendering, physics, animation, UMG UI, Enhanced Input, network replication, UPROPERTY/UFUNCTION macros, GameInstance lifecycle, C++ vs Blueprint tradeoffs.
+- Unreal Engine core concepts: Actor/Pawn/Character, GameMode/GameState/PlayerController framework, Blueprint vs C++,
+  rendering, physics, animation, UMG UI, Enhanced Input, network replication, UPROPERTY/UFUNCTION macros, GameInstance
+  lifecycle, C++ vs Blueprint tradeoffs.
 - 62.2KB SKILL.md.
