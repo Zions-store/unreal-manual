@@ -2,6 +2,32 @@ Copyright (C) 2026 ZionXiaoxiSuOGLocGo
 SPDX-License-Identifier: GPL-3.0-or-later
 # unreal-manual Changelog
 
+## [2.4.0] - 2026-09-25 — Official-Documentation Gap Analysis Round
+**Source**: full comparison against the official UE 5.8 documentation (chapter-tree scan + 13 deep-read pages via subagents)
+
+### Added
+- **Materials & Material Instances** chapter — editor shortcuts, master/instance workflow, constant vs
+  dynamic instances, Static Switch compile-explosion and unwired-expression pitfalls
+- **Lighting** chapter — light types × mobility table, Lumen enablement and its UE4-upgrade / Static-light /
+  update-latency pitfalls, Lightmass legacy route, **Post Process Volume** section
+- **Landscape & Foliage** chapter — Shift+2 entry, section-size guidance, Sculpt/Paint/Edit Layers/Spline,
+  automatic collision, foliage-as-ISM, **Water System** pointer
+- **Modeling Mode** chapter — Shift+5, PolyGroups, Accept model, output types, harvest-to-ISM
+- **Level Blueprint** section (per-level orchestration, instance events, reusability pitfall) and
+  **Blueprint Debugger** (breakpoints/watch pins)
+- World Partition: **Data Layers** expanded — Asset (Editor vs Runtime), Data Layer Outliner,
+  SetDataLayerInstanceRuntimeState, server-authority pitfall
+- Animation: **Control Rig** section — Forwards/Backwards Solve, runtime integration paths, FK Control Rig
+- **Paper 2D** chapter (sprite/flipbook/tile map, when-2D-makes-sense guidance) and
+  **Mass Entity** chapter (crowd-scale awareness, when-not-to-use)
+- Performance: **ISM/HISM** section (component-level sharing, Nanite→ISM, per-instance custom data) and
+  **Unreal Insights** section (Trace → .utrace → Timing view, channel pitfall)
+- GAS: **Newer Gameplay Systems (5.5+)** awareness table (Gameplay Camera / Targeting / Mover)
+- **Production & Automation Extras** chapter — Source Control editor integration, Editor Python scripting
+  (with MCP supersession note), Pixel Streaming, Motion Design / NNE / LWC adjacency table
+- Symptom Router +4 rows; frontmatter keywords +18 (Lighting, Material, Landscape, Modeling Mode,
+  Level Blueprint, Control Rig, Mass Entity, Paper 2D, ISM, Unreal Insights, ...)
+
 ## [2.3.0] - 2026-09-24 — Usability Audit Round
 **Source**: usage-driven audit — retrieval tests (4 questions), gap tests (12 domains), subagent blind tests
 

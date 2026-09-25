@@ -1,7 +1,7 @@
 ---
 name: unreal-manual
-version: 2.3.0
-description: Unreal Engine core concepts and best practices. Use when the user mentions Unreal Engine, UE5, Actor, Pawn, Character, GameMode, Blueprint, UMG, Enhanced Input, Chaos, Nanite, Lumen, UPROPERTY, UFUNCTION, replication, RPC, GameInstance, Niagara, Line Trace, Timer, Event Dispatcher, Blueprint Interface, module, FString, FName, FText, DataTable, GameplayTag, Subsystem, SaveGame, Timeline, Sequencer, Soft Reference, Packaging, Build.cs, IMPLEMENT_MODULE, Public/Private folder, UObject, NavMesh, pathfinding, AI MoveTo, Behavior Tree, Blackboard, StateTree, dedicated server, crash report, touch input, anchors, DPI scale, physics constraint, function library, or is working on Unreal Engine game development tasks.
+version: 2.4.0
+description: Unreal Engine core concepts and best practices. Use when the user mentions Unreal Engine, UE5, Actor, Pawn, Character, GameMode, Blueprint, UMG, Enhanced Input, Chaos, Nanite, Lumen, Lighting, Material, Material Instance, UPROPERTY, UFUNCTION, replication, RPC, GameInstance, Niagara, Line Trace, Timer, Event Dispatcher, Blueprint Interface, module, FString, FName, FText, DataTable, GameplayTag, Subsystem, SaveGame, Timeline, Sequencer, Level Blueprint, Landscape, Foliage, Modeling Mode, Paper 2D, Control Rig, NavMesh, pathfinding, AI MoveTo, Behavior Tree, Blackboard, StateTree, Mass Entity, ISM, Instanced Static Mesh, Unreal Insights, dedicated server, crash report, touch input, anchors, DPI scale, physics constraint, function library, source control, Pixel Streaming, or is working on Unreal Engine game development tasks.
 compatibility: ue-5.0, ue-5.5, ue-5.8
 ---
 
@@ -28,6 +28,10 @@ Use when the user asks about UE development — creating game logic, designing l
 | `ANY_PACKAGE` undeclared build error | §Troubleshooting — ANY_PACKAGE |
 | Works in editor, crashes in packaged build | §Troubleshooting — Packaged Build Crashes + §Packaging checklist |
 | Character movement feels floaty / turns too slow | §Character Movement — RotationRate & friction properties |
+| Material change has no effect / compile takes minutes | §Materials & Material Instances |
+| Lighting flat after upgrading from UE4 | §Lighting — Lumen enablement |
+| Landscape runs poorly / looks chunky | §Landscape & Foliage — section size |
+| Thousands of props tank framerate | §Performance — ISM/HISM |
 | NPC/enemy won't move or path | §Navigation & AI Movement |
 | Replicated property not syncing to clients | §Network Replication |
 | StateTree vs Behavior Trees choice | §StateTree AI / §Behavior Trees |
@@ -395,6 +399,25 @@ Blueprints are visual scripts — no C++ required. Every Blueprint has two main 
 | **Can have return value?** | ✅ Multiple output pins | ✅ One return value | ❌ No |
 | **Execution cost** | Inlined (copied) at compile | Function call overhead | Lightweight dispatch |
 | **Use for** | Reusable node groups (like a template) | Computation, getter/setter logic | Async notification, event dispatch |
+
+### Level Blueprint
+
+Every level ships with exactly one global event graph — the **Level Blueprint** (Level Editor toolbar →
+**Blueprints → Open Level Blueprint**). It exists per level, cannot be created/deleted, and its logic is
+bound to that level.
+
+What belongs there: level-specific orchestration — level streaming triggers, Sequencer kick-offs,
+and events for *specific Actor instances* in the level. Select a placed Actor → right-click in the graph →
+"Add Event for [Actor]" / "Create a reference to X" binds instance-level events (e.g. this door's overlap).
+
+Pitfall: putting reusable gameplay logic in the Level Blueprint makes it unshippable to other levels — that
+belongs in Actor Blueprints. Treat the Level BP as glue for one map only.
+
+### Blueprint Debugger
+
+Set **Breakpoints** directly on Blueprint nodes (F9 with node selected) — PIE pauses on hit; inspect the
+Local/Watch panels. **Window → Blueprint Debugger** lists all active BPs, instances, and breakpoints while
+PIE runs. Watch pins: right-click any pin → Watch this value (shows live values on the node).
 
 ## Blueprint Communication
 
@@ -807,7 +830,23 @@ UE5's large-world system that streams only visible cells. Replaces the old World
 - Enable in **World Settings → Enable World Partition**
 - Each Actor is saved as a separate file (One File Per Actor / OFPA)
 - `Content/__ExternalActors__/` stores OFPA data in hex-gridded subdirectories
-- Data Layers control what streams when (gameplay variation, day/night, DLC)
+- Data Layers control what streams when (see below)
+
+**Data Layers** — Actor grouping + per-layer streaming:
+
+- **Data Layer Asset** (Content Browser → Miscellaneous) comes in **Editor** (organization only) and
+  **Runtime** (toggleable in game) flavors; each world holds Data Layer Instances of them
+- Manage via **Window → World Partition → Data Layer Outliner**: assign Actors, "Make Current" for painting
+- Runtime switching (day/night or world-state variants):
+
+```cpp
+if (UDataLayerSubsystem* DL = GetWorld()->GetSubsystem<UDataLayerSubsystem>())
+    DL->SetDataLayerInstanceRuntimeState(LayerInstance, EDataLayerRuntimeState::Activated);
+```
+
+- Debug commands: `wp.DumpDataLayers`, `wp.Runtime.ToggleDataLayerActivation <name>`
+- Pitfalls: assets shared by many Runtime layers strain streaming; in multiplayer only the **server** may
+  activate layers (guard with `HasAuthority()`)
 
 **OFPA active** when `Content/__ExternalActors__/` + `Content/__ExternalObjects__/` exist. Implications: FObjectFinder less reliable in CDO constructor; each Actor saved as separate `.uasset`.
 
@@ -823,6 +862,59 @@ ULevelStreamingDynamic* Level = ULevelStreamingDynamic::LoadLevelInstance(
 // Unload
 Level->SetShouldBeVisible(false);
 ```
+
+---
+
+## Landscape & Foliage
+
+### Landscape (terrain)
+
+Height-field terrain system. Entry: Select Mode dropdown → **Landscape** (or **Shift+2**).
+
+**Create:** Manage tab → New Landscape — recommended **Section Size 63×63 quads**; Components count sets
+the tile grid (≤32×32). Pick the landscape material at creation time. Editing modes:
+
+| Mode | Does |
+|---|---|
+| **Sculpt** | Raise/lower/smooth/flatten via brushes (Alt inverts) |
+| **Paint** | Paint layer weights (grass/dirt/rock — one material layer per paint layer) |
+| **Edit Layers** | Non-destructive layer stack — sculpt on a layer, hide/merge later |
+| **Spline** | Place road/fence/river splines with meshes auto-fitted along the curve |
+
+Collision is generated automatically (Landscape Collision), and landscapes stream via World Partition
+without extra setup.
+
+Pitfall: Section Size + Component count drive CPU cost — small sections scaled up afterwards is the worst
+combination. Prefer larger sections and fewer components.
+
+### Foliage (paint instanced meshes)
+
+Select Mode → **Foliage** (Shift+3): paint static meshes (grass, rocks, trees) onto surfaces with density
+brushes. Every painted instance goes into an **Instanced Static Mesh** — this is the cheap way to scatter
+thousands of props (see §Performance — ISM/HISM). Filter by surface type (landscape/foliage/static mesh)
+and set per-mesh scale/collision/Z-offset in the foliage palette.
+
+### Water System (plugin, advanced)
+
+The **Water** plugin adds Water Bodies (ocean / lake / river / island) that render fluid surfaces and
+deform landscape automatically. Enable via Plugins. Still evolving — parameter reference lives in the
+official Water documentation; treat this entry as the discovery point only.
+
+---
+
+## Modeling Mode (In-Editor Mesh Editing)
+
+UE's built-in DCC-lite: Select Mode dropdown → **Modeling** (Shift+5) — enable the
+*Modeling Tools Editor Mode* plugin if missing. Everything operates on triangle meshes organized into
+**PolyGroups** (fake quads/N-gons for box-modeling).
+
+- Tool categories: Create / XForm / Deform / Model (boolean, polygroup edit) / Mesh / Voxel / Bake / UVs / Attributes
+- All edits are **previewed, then committed with Accept** — forgetting Accept before switching tools discards the work (Accept-then-undo only rolls the whole session)
+- **Output Type** decides the product: Static Mesh asset (Content Browser), Dynamic Mesh (level-only), or Volume
+- Core workflow tools: **PolyGroup Edit** (box modeling), **Triangle Edit** (raw topology), **XForm → Harvest Instances** (build ISM sets — see Performance)
+
+Best for: quick blockouts, boolean cuts, simple props, baking high→low detail. Heavy authoring still
+belongs in Blender/Maya.
 
 ---
 
@@ -855,6 +947,81 @@ UE5 targets DX12 by default. Vulkan available on Linux/Android. No DX11 fallback
 ### Scalability
 
 UE scales features per quality level (Low/Medium/High/Epic). Set in **Settings → Engine Scalability**. Features like Lumen can be disabled on Low.
+
+---
+
+## Materials & Material Instances
+
+A Material is a node graph: **Material Expressions** (data nodes) all feed the single **Main Material Node**
+(BaseColor / Metallic / Roughness / Normal / Emissive / Opacity pins). Global settings (Shading Model,
+Blend Mode, Material Domain) live in the Details panel while the Main Material Node is selected.
+
+### Material Editor Essentials
+
+| Shortcut | Creates |
+|---|---|
+| **T** / **S** / **V** | TextureSample / ScalarParameter / VectorParameter |
+| **M** / **L** | Multiply / Lerp |
+| **1–4** | Constant (hold for float/vec2/3/4) |
+| **Shift+C** | ComponentMask |
+
+**Apply** (or Enter) compiles; the Stats panel shows instruction counts and errors. The HLSL panel is read-only.
+
+Pitfall: any non-parameter change recompiles the whole material (can take minutes on complex graphs), and
+expressions not wired to the Main Material Node have no effect and no cost — "I changed it, nothing happened"
+is almost always a missing wire.
+
+### Material Instances (the standard workflow)
+
+Author **one Master Material** (prefix `M_`) with exposed parameters, then create instances (`MI_`) that only
+override parameter values — instances never recompile shaders. Parameters: `ScalarParameter`,
+`VectorParameter`, `TextureSampleParameter2D` (names must be unique).
+
+| Instance type | When |
+|---|---|
+| **Material Instance Constant** | Design-time variation (the normal case — 1 master, N instances) |
+| **Material Instance Dynamic** | Runtime changes: BP `Create Dynamic Material Instance` + `Set Scalar/Vector Parameter Value` (hit-flash, dissolve progress) |
+
+**Static Switch** parameters branch at compile time — great for feature toggles, but every combination compiles
+a separate shader: too many static switches across too many instances = shader compile explosion.
+
+---
+
+## Lighting
+
+### Light Types × Mobility
+
+| Type | Use |
+|---|---|
+| **Directional** | Sun/moon — affects everything, drives sky |
+| **Sky Light** | Captures sky/HDRI for ambient |
+| **Point / Spot / Rect** | Local lights (bulb / flashlight / panel) |
+
+| Mobility | Behavior |
+|---|---|
+| **Movable** | Fully dynamic — shadows + GI computed at runtime (default for Lumen projects) |
+| **Stationary** | Baked indirect + dynamic direct/shadows — legacy middle ground |
+| **Static** | Fully baked into lightmaps (**not supported when Lumen GI is enabled**) |
+
+### Lumen (UE5 default GI + reflections)
+
+Enable: Project Settings → Rendering → **Dynamic Global Illumination = Lumen**, **Reflections = Lumen**
+(also auto-enables Mesh Distance Fields). Tuning lives in a **Post Process Volume**: Final Gather Quality,
+Lumen Scene View Distance, Max Trace Distance.
+
+Pitfalls:
+- **Projects upgraded from UE4 do NOT auto-enable Lumen** — check Rendering settings after upgrading
+- Lumen ignores Static-mobility lights; switch them to Movable/Stationary
+- Global lighting changes (e.g. sun turning off) lag a few seconds behind due to cache — raise Lighting Update Speed if needed
+
+**Legacy route (no Lumen):** Static/Stationary lights + Build Lighting (Lightmass bakes lightmaps) — still valid
+for low-end mobile.
+
+### Post Process Volume
+
+Scene-wide visual grading: add a **Post Process Volume** actor (infinite extent for global) — exposure,
+Bloom, Depth of Field, color grading (LUT), Motion Blur. Lumen quality sliders also live here. Multiple
+volumes blend by priority — one global volume + local volumes for interiors is the standard setup.
 
 ---
 
@@ -1082,6 +1249,20 @@ void UAnimNotify_DoAttackTrace::Notify(...) {
 
 Forgetting to set `Mesh->SetAnimationMode(EAnimationMode::AnimationBlueprint)` or assign the AnimBP in the Character Blueprint → character is in T-pose.
 
+### Control Rig (IK & Procedural Animation)
+
+In-engine rigging + procedural animation framework: author node graphs in a **Control Rig** asset that
+drive bones. Two evaluation directions: **Forwards Solve** (controls → bones, i.e. animate) and
+**Backwards Solve** (bones → controls, i.e. retargeting/IK setup) — mixing up which direction does what
+is the classic beginner stall.
+
+Rig elements: **Controls** (animatable handles), **Bones**, **Nulls**; includes **Full-Body IK**,
+Spline rigging, and Pose Caching. **FK Control Rig** gives a ready-made rig for keyframe-tweaking existing
+animation without authoring a custom asset.
+
+Runtime integration (Control Rig does NOT self-execute): via **Sequencer** (keyframe controls in a
+Level Sequence), a **Control Rig Component** on an Actor, or called from an Animation Blueprint.
+
 ### Compatible Skeleton Retargeting
 
 When IK Rig Retarget fails in UE5.8 (Mixamo FBX: no Humanoid dropdown, IK Rig preview skeleton won't resolve):
@@ -1159,6 +1340,26 @@ Director-grade cutscene tool — not to be confused with Blueprint Timelines (si
 - **Camera**: Camera Cuts track drives cinematic cameras; Blend settings per key
 
 Use Timeline for in-game prop motion, Sequencer for cutscenes/opening movies/scripted sequences.
+
+---
+
+## Paper 2D (2D Games)
+
+UE's 2D sprite system (built-in **Paper 2D** plugin) — viable for 2D/2.5D games, though the ecosystem is
+far smaller than Unity's 2D stack:
+
+| Asset | Purpose |
+|---|---|
+| **Sprite** (`PaperSprite`) | Single 2D image with collision/pivot settings |
+| **Flipbook** | Frame-by-frame sprite animation |
+| **Sprite Atlas Group** | Automatic atlas packing by group |
+| **Tile Map / Tile Set** | Grid-based 2D levels with per-tile collision |
+| **Paper Character / Pawn** | 2D-specialized character classes |
+
+Workflow notes: sprites import from textures (right-click → Sprite Actions → Create Sprite); 2D lighting
+needs the **2D renderer** in the viewport settings; physics still uses 3D shapes — 2D collision is
+axis-aligned box/sphere/capsule on a Z-locked plane. Choose UE for 2D only when reusing 3D systems
+(networking, Niagara, Sequencer); pure 2D projects are usually better served elsewhere.
 
 ---
 
@@ -1355,6 +1556,17 @@ constantly in older code.
 **Running it:** AIController → `Run Behavior Tree (BTAsset)` + `Use Blackboard (BBAsset)` (or set `Auto Possess AI` + Brain Component on the Pawn). The Tree ticks per its decorators/services while the AI runs.
 
 **BT vs StateTree:** maintain existing projects in BT; greenfield on 5.4+ → StateTree (better tooling, transitions with state memory). Both drive the same Navigation System underneath.
+
+## Mass Entity (Large-Scale Crowds)
+
+Data-oriented crowd simulation for hundreds–thousands of NPCs (city crowds, traffic) — think
+"UE's ECS for AI". Building blocks: **Entities** carry **Fragments** (data), **Templates** spawn them
+(**AMassSpawner**), **Processors** run logic over entity chunks. **ZoneGraph** defines lanes/paths
+(sidewalks, roads); **Mass StateTree** gives crowd-scale behavior.
+
+Status: still maturing (production cases exist, e.g. City Sample). Reach for it only when StateTree/BT
+per-instance costs genuinely break down (typically >200 simultaneous agents); a few dozen NPCs is NOT a
+Mass use case. Deep reference lives in the official Mass Entity docs.
 
 ---
 
@@ -1973,6 +2185,17 @@ GAS is UE's built-in framework for abilities, attributes, buffs, and cooldowns. 
 
 GAS is fully exposed to Blueprint. Enabling the `GameplayAbilities` plugin activates it.
 
+### Newer Gameplay Systems (UE 5.5+, awareness level)
+
+| System | Purpose |
+|---|---|
+| **Gameplay Camera System** | Modular data-driven cameras (new in 5.5, coexists with legacy camera components) |
+| **Gameplay Targeting System** | Standardized target selection for abilities |
+| **Mover Plugin** | Rollback-capable networked movement — the eventual CharacterMovement successor |
+
+All still early-adoption — check plugin status per engine version before building on them; legacy
+equivalents (CameraComponent, CMC) remain fully supported.
+
 ---
 
 ## Performance Best Practices
@@ -1994,6 +2217,34 @@ GAS is fully exposed to Blueprint. Enabling the `GameplayAbilities` plugin activ
 - Limit dynamic shadow-casting lights
 - Use Light Function Atlas (UE 5.5+) to reduce light function cost
 - Profile with `stat gpu`, `stat unit`, `stat scenerendering`
+
+### Instanced Static Meshes (ISM / HISM)
+
+One component renders N copies of the same Static Mesh — merges draw calls and slashes per-object overhead
+(instance ≈64 B vs ~672 B per primitive). Material/collision/shadow are **shared at component level**;
+only Transform (+ per-instance custom data) is per-instance — you cannot swap material per instance.
+
+| Variant | Use |
+|---|---|
+| **Instanced Static Mesh (ISM)** | Default choice; **Nanite projects should always use ISM** |
+| **Hierarchical ISM (HISM)** | Thousands of static props: clustered culling + per-cluster LOD — but wrong for instances that move |
+
+Ways to build: Foliage painting, **Merge Actors → Batch**, Packed Level Actor, Modeling Mode
+XForm → Harvest Instances/Pattern. Pass per-instance parameters via **Per Instance Custom Data** +
+Custom Primitive Data in the material (cheaper than dynamic material instances).
+
+### Unreal Insights (Trace Profiling)
+
+`stat` commands give instant console numbers; **Unreal Insights** records full traces for replayable
+per-frame timelines with caller/callee breakdowns:
+
+1. Editor bottom bar → **Trace** control (or standalone `Engine/Binaries/Win64/UnrealInsights.exe`)
+2. Events stream to the Unreal Trace Server (port 1981, background) and persist as `.utrace`
+3. **Timing Insights**: Frames + Timing panels, CPU/GPU tracks, Timers/Counters, Callers/Callees
+
+Views are channel-dependent (Memory/Networking/Asset Loading...) — a view with no data means its trace
+channel wasn't recording; check the Trace Control tab first. Sub-views also exist for cooking, audio, and
+Slate.
 
 ### Physics
 - Use simple collision shapes (box, sphere, capsule) over complex mesh collision
@@ -2040,6 +2291,42 @@ Output goes to project root's `Windows/` folder (or corresponding platform). The
 ### Patch & DLC
 
 Use **Patching** in Project Settings → Packaging for delta updates. Content-only patches can be smaller than a full rebuild. External Data Layers + Game Features plugins support DLC without touching base game content.
+
+---
+
+## Production & Automation Extras
+
+### Source Control Integration (editor)
+
+Editor status bar → **Source Control** → connect (Perforce built-in; Git via plugin). Panel features:
+file states in Content Browser, **Check Out/Mark for Add**, Submit changelists, and diff against depot.
+Relevant mainly for large teams with binary-heavy assets where Perforce **locking** prevents two artists
+saving one .uasset — small git-based teams can skip the editor integration entirely (git LFS handles it).
+
+### Editor Python Scripting
+
+Headless/batch editor automation via the **Python Editor Script Plugin** (auto-on with the Editor
+Scripting Utilities). Entry points: Tools → **Execute Python Script**, the Output Log's Python mode, or
+`Engine/Binaries/Win64/UEEditor <proj> -run=pythonscript -script=...`. API surface is the `unreal`
+module — mirrors editor types (`unreal.EditorLevelLibrary`, `unreal.EditorAssetLibrary`).
+
+Standard division: Python for asset-pipeline batches (bulk rename/reimport/export), Blueprints for
+gameplay, and — for AI-agent-driven editing — the MCP integration below supersedes script-file round-trips.
+
+### Pixel Streaming (cloud rendering)
+
+Run the game on a server/GPU VM, stream video to a browser over WebRTC; input flows back. Pieces:
+packaged build with `-AudioMixer -RenderOffScreen`, the **Signaling Server** (matching web clients to
+streams), and TURN/STUN for NAT traversal. Deployed via the Pixel Streaming Infrastructure
+(multi-user SFU). Niche but real for cloud demos and instant-play marketing pages — plan dedicated infra.
+
+### Adjacent Domains (know they exist)
+
+| Domain | What it is |
+|---|---|
+| **Motion Design** (5.5+) | Motion-graphics/broadcast toolset inside UE (curve-driven animation, stage actors, DMX) — not gameplay tech |
+| **Neural Network Engine (NNE)** | Runtime neural-net inference in-engine (ONNX models) — research-grade, niche gameplay use |
+| **Large World Coordinates** | Double-precision world coordinates for planet-scale worlds — opt-in per project, mostly transparent |
 
 ---
 
