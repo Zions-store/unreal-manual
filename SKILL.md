@@ -1,7 +1,7 @@
 ---
 name: unreal-manual
-version: 2.2.1
-description: Unreal Engine core concepts and best practices. Use when the user mentions Unreal Engine, UE5, Actor, Pawn, Character, GameMode, Blueprint, UMG, Enhanced Input, Chaos, Nanite, Lumen, UPROPERTY, UFUNCTION, replication, RPC, GameInstance, Niagara, Line Trace, Timer, Event Dispatcher, Blueprint Interface, module, FString, FName, FText, DataTable, GameplayTag, Subsystem, SaveGame, Timeline, Timeline Editor, Soft Reference, Packaging, Build.cs, IMPLEMENT_MODULE, Public/Private folder, UObject, or is working on Unreal Engine game development tasks.
+version: 2.3.0
+description: Unreal Engine core concepts and best practices. Use when the user mentions Unreal Engine, UE5, Actor, Pawn, Character, GameMode, Blueprint, UMG, Enhanced Input, Chaos, Nanite, Lumen, UPROPERTY, UFUNCTION, replication, RPC, GameInstance, Niagara, Line Trace, Timer, Event Dispatcher, Blueprint Interface, module, FString, FName, FText, DataTable, GameplayTag, Subsystem, SaveGame, Timeline, Sequencer, Soft Reference, Packaging, Build.cs, IMPLEMENT_MODULE, Public/Private folder, UObject, NavMesh, pathfinding, AI MoveTo, Behavior Tree, Blackboard, StateTree, dedicated server, crash report, touch input, anchors, DPI scale, physics constraint, function library, or is working on Unreal Engine game development tasks.
 compatibility: ue-5.0, ue-5.5, ue-5.8
 ---
 
@@ -15,6 +15,26 @@ Covers UE core concepts, architecture, and best practices. See frontmatter `comp
 ## When to Use This Skill
 
 Use when the user asks about UE development — creating game logic, designing levels, Blueprint/C++ decisions, debugging, networking, or understanding engine behavior. Also use when a Unity-to-UE transition question arises (see Appendix).
+
+## Symptom Router
+
+| Symptom / Task | Go to |
+|---|---|
+| Editor freezes on "Compiling Shaders (XXXX remaining)" | §Troubleshooting — Shader Compilation |
+| EXCEPTION_ACCESS_VIOLATION crash | §Troubleshooting — EXCEPTION_ACCESS_VIOLATION |
+| Blueprint nodes broken after C++ rename | §Troubleshooting — Blueprint Node Disappeared |
+| Project won't open / "different engine version" | §Troubleshooting — Version Mismatch |
+| "Unable to build while Live Coding is active" | §Troubleshooting — Live Coding |
+| `ANY_PACKAGE` undeclared build error | §Troubleshooting — ANY_PACKAGE |
+| Works in editor, crashes in packaged build | §Troubleshooting — Packaged Build Crashes + §Packaging checklist |
+| Character movement feels floaty / turns too slow | §Character Movement — RotationRate & friction properties |
+| NPC/enemy won't move or path | §Navigation & AI Movement |
+| Replicated property not syncing to clients | §Network Replication |
+| StateTree vs Behavior Trees choice | §StateTree AI / §Behavior Trees |
+| UI text breaks localization | §FString vs FName vs FText |
+| Persistent data across level changes | §GameInstance; §SaveGame for disk saves |
+| Gamepad/keyboard UI navigation | §UMG — CommonUI |
+| Camera/lighting artifacts, D3D12 errors | §Troubleshooting — DX12 / GPU Crashes |
 
 ## Editor UI Basics
 
@@ -432,6 +452,27 @@ Define a contract that any Blueprint can implement. Useful when different classe
 | Generic reference → specific class | Cast (cache it) |
 | Notify many listeners of an event | Event Dispatcher |
 | Different classes, same behavior | Blueprint Interface |
+| Shared utility function callable anywhere | Blueprint Function Library |
+
+### Blueprint Function Library
+
+Shared stateless functions callable from ANY Blueprint (math helpers, scene queries, spawning utilities):
+
+- **Blueprint-only**: Content Browser → Blueprint Class → **Blueprint Function Library** → add Functions (mark them callable; they compile as global nodes)
+- **C++**: subclass `UBlueprintFunctionLibrary` with `static` `UFUNCTION(BlueprintCallable)` / `BlueprintPure` members:
+
+```cpp
+UCLASS()
+class UMyGameBPLibrary : public UBlueprintFunctionLibrary
+{
+    GENERATED_BODY()
+public:
+    UFUNCTION(BlueprintCallable, Category="MyGame|Combat")
+    static bool IsTargetInRange(const AActor* From, const AActor* To, float Range);
+};
+```
+
+Rules: functions must be static and stateless (no instance members) — for stateful managers use Subsystems instead.
 
 ---
 
@@ -546,7 +587,7 @@ Define modules in your `.uproject` file:
 | **Type** | `Runtime`, `Editor`, `Developer`, `Program` | Where the module is available |
 | **LoadingPhase** | `Default`, `PreDefault`, `PostConfigInit`, `PostEngineInit` | When the module loads |
 
-Editor-only modules (tools, custom inspectors, editor extensions) use `Type: "Editor"` — they won't be included in packaged builds.
+Editor-only modules (tools, property editors / Details panel customizations, editor extensions) use `Type: "Editor"` — they won't be included in packaged builds.
 
 ### API Export Macros
 
@@ -699,7 +740,7 @@ FText FromString = FText::FromString(String);
 
 ## Timers (FTimerManager)
 
-UE's equivalent of Unity Coroutines. Schedule a function to run after a delay, or repeat at an interval.
+Schedule a function to run after a delay, or repeat at an interval — the closest UE equivalent of Unity coroutines for delayed/repeating logic (full Unity mapping in the Appendix).
 
 ### C++
 
@@ -862,6 +903,24 @@ Mesh->AddTorqueInRadians(FVector::UpVector * Torque);
 // On a Character
 Character->LaunchCharacter(FVector::UpVector * JumpHeight, false, false);
 ```
+
+### Physics Constraints
+
+Connect two simulated bodies (hinges, ropes, motors):
+
+| Form | Use |
+|---|---|
+| **PhysicsConstraintActor** | Place in level, assign the two constrained Actors (Constraint Actor 1 / 2) |
+| **PhysicsConstraintComponent** | Add to an Actor; constrain component-to-component (`SetConstraintReferencePosition` + names) |
+| **PhysicsHandleComponent** | Grab-and-drag objects at a distance (mouse pickup) |
+
+Constraint types (Details → Constraint Behavior): **Hinge** (door/lid, 1 axis), **Ball & Socket** (rope/chain link),
+**Slider** (elevator), **Twist & Swing** (ragdoll limbs), **Fixed** (breakable weld).
+Enable **Enable Collision** + **Enable Projection** to keep chains from exploding.
+
+Blueprint nodes: `Break Constraint`, `Set Breakable Constraint` (force threshold), `Get Constraint Force`.
+
+Pitfall: both bodies need `Simulate Physics = true` (or one may be static/world-fixed via "Attach to World"). Constraints between un-simulated bodies do nothing.
 
 ### Common Pitfall
 
@@ -1089,6 +1148,20 @@ UE's visual animation curve editor. Create bezier/linear/key curves for float, v
 
 ---
 
+## Sequencer (Cinematics)
+
+Director-grade cutscene tool — not to be confused with Blueprint Timelines (simple per-BP curves above).
+
+- **Level Sequence** asset: multi-track timeline (Transform keys, Animation, Camera Cuts, Audio, Events) bound to level Actors
+- **Create**: Content Browser → Animation → Level Sequence, or Level Editor → Track button → Create Level Sequence → adds a Level Sequence Actor in the level
+- **Play from Blueprint**: `Level Sequence Actor → Get Sequence Player → Play` (or auto-play on the Actor)
+- **Events**: add an Event track → right-click key → Create Event → fires a Blueprint Custom Event at that frame (cutscene-driven gameplay beats)
+- **Camera**: Camera Cuts track drives cinematic cameras; Blend settings per key
+
+Use Timeline for in-game prop motion, Sequencer for cutscenes/opening movies/scripted sequences.
+
+---
+
 ## Character Movement
 
 `ACharacter` comes with a built-in **CharacterMovementComponent** (CMC). It handles walking, jumping, falling, swimming, flying — and syncs with Animation Blueprints automatically.
@@ -1103,7 +1176,13 @@ UE's visual animation curve editor. Create bezier/linear/key curves for float, v
 | `GravityScale` | Gravity multiplier (1.0 = normal) |
 | `MaxAcceleration` | How fast speed ramps up |
 | `BrakingDecelerationWalking` | How fast speed drops when no input |
+| `RotationRate` | Turn speed — (0, 540, 0) default = 540°/s yaw. No effect while `Use Controller Rotation Yaw` is checked on the Character (first-person) |
+| `bOrientRotationToMovement` | Face the movement direction (third-person default). Off = keep controller-facing rotation |
+| `GroundFriction` | How sharply grounded velocity decays (8.0 default) — lower = icier/sliding feel |
+| `BrakingFrictionFactor` | Friction multiplier while braking (1.0) — raise for snappier stops |
 | `bWantsToCrouch` | Request crouch (character resizes capsule) |
+
+**Feel-tuning cheat sheet:** floaty = raise `BrakingDecelerationWalking`/`BrakingFrictionFactor`; icy drift = raise `GroundFriction`; sluggish turning = raise `RotationRate` (and ensure `bOrientRotationToMovement` on for third-person).
 
 ### Movement Modes
 
@@ -1208,9 +1287,45 @@ Reset flags on landing: `Landed()` → zero out movement-specific flags.
 
 ---
 
-## StateTree AI (UE5 Default)
+## Navigation & AI Movement
 
-UE5 game templates use **StateTree** for NPC behavior (not legacy Behavior Trees):
+How NPCs pathfind and move to targets.
+
+### Setting up the NavMesh
+
+1. Place a **NavMeshBoundsVolume** (Place Actor → Volumes → NavMeshBoundsVolume) covering all walkable geometry — scale it to enclose the level.
+2. The NavMesh generates automatically (dynamic rebuild as geometry moves). Press **P** in the viewport to visualize the green walkable surface.
+3. Agent shape: Project Settings → Navigation Mesh → Agent Radius/Height control how close to walls agents can path (defaults 35 cm / 144 cm).
+
+No green area under the volume? Check: volume actually covers the floor, floor collision is not NoCollision, and the navigation system isn't disabled in World Settings.
+
+### Moving an NPC
+
+**Blueprint (quickest):** `AI MoveTo` node — takes Pawn + destination. Requires the Pawn to have an AIController (possess it, or check "Auto Possess AI" → Placed in World on the Pawn).
+
+```cpp
+// C++ — from the NPC's AIController
+EPathFollowingRequestResult::Type Result = MoveToLocation(Destination, /*AcceptanceRadius*/ 50.f);
+// Or move to an actor (keeps re-pathing toward it):
+MoveToActor(TargetActor, 100.f);
+
+// Stop:
+StopMovement();
+```
+
+Characters should use movement mode `MOVE_NavWalking` (set via `GetCharacterMovement()->SetMovementMode(MOVE_NavWalking)`) so the CharacterMovementComponent follows the NavMesh instead of physics.
+
+### Common Pitfalls
+
+- `MoveTo` fails instantly (returns Failed) → target unreachable: no NavMesh path (press P), or target outside the NavMeshBoundsVolume.
+- AcceptanceRadius too small → NPC oscillates around the target; use 50–100 cm.
+- Auto Possess AI not set → `AI MoveTo` silently does nothing for a placed Pawn.
+
+## StateTree AI (UE 5.4+ Templates)
+
+UE 5.4+ game templates ship **StateTree** for NPC behavior. Version note: StateTree was experimental in 5.0–5.2,
+production-ready from 5.3+, template-integrated from 5.4. **Behavior Trees remain fully supported** and are
+widespread in existing/marketplace projects — see the next section for both.
 
 ```
 NPC's UStateTreeComponent → StateTree asset
@@ -1221,6 +1336,25 @@ NPC's UStateTreeComponent → StateTree asset
 **Key classes:** `AAIController` bridges StateTree and Navigation System. `UStateTree` asset defines behavior.
 
 **Troubleshooting:** "Context Requirements failed" on PIE stop = benign. NPC freeze → press P to check NavMesh. NPC won't attack → verify target Tag/collision channel.
+
+## Behavior Trees (Legacy, Still Widespread)
+
+Behavior Trees + Blackboard are the classic UE AI stack — production-ready since UE4, still used by a large share of
+existing and marketplace projects. New templates favor StateTree (previous section), but you will encounter BT
+constantly in older code.
+
+| Piece | Role |
+|---|---|
+| **Blackboard** | Data store for one AI: keys (Target, HomeLocation, PatrolIndex) read/written by BT nodes |
+| **Composites** | `Selector` = try children until one succeeds (OR); `Sequence` = run all in order, fail on first failure (AND) |
+| **Tasks** (blue) | Leaf actions: Move To, Wait, custom `UBTTaskNode` |
+| **Decorators** (red) | Conditions/aborts: Blackboard value check, cooldown, distance |
+| **Services** (purple) | Periodic checks attached to composites: update Target every 0.5s while branch runs |
+| **EQS** | Environment Query System: score candidate points (patrol spots, cover) into a Blackboard key |
+
+**Running it:** AIController → `Run Behavior Tree (BTAsset)` + `Use Blackboard (BBAsset)` (or set `Auto Possess AI` + Brain Component on the Pawn). The Tree ticks per its decorators/services while the AI runs.
+
+**BT vs StateTree:** maintain existing projects in BT; greenfield on 5.4+ → StateTree (better tooling, transitions with state memory). Both drive the same Navigation System underneath.
 
 ---
 
@@ -1265,6 +1399,23 @@ UE5 supports property binding: Widget text/value → function or property → up
 
 A cross-platform UI framework for controller/keyboard/touch navigation. Handles focus management, button styles per platform, and input mode switching automatically.
 
+### Responsive Layout (Anchors & DPI)
+
+**Anchors** define how a widget resizes/repositions relative to its parent — the root cause of "UI looks fine at my resolution, broken elsewhere":
+
+| Need | Anchor setup |
+|---|---|
+| Fill the whole screen | Select root widget → Anchors preset (right-click in Designer) → **Fill** |
+| HUD pinned to a corner | Anchor preset (e.g. Bottom Left) → widget keeps offset from that corner at any resolution |
+| Stretch proportionally | Anchor + offset in **percentage** mode (toggle the % icon next to Anchors) |
+| Fixed-size centered element | Center anchor + **Size Box** to lock dimensions |
+
+**DPI Scale** adapts widget sizes to pixel density: Project Settings → Engine → **User Interface → DPI Scale Rule** (`Canvas` default) + DPI Curve. Custom curves for unusual aspect ratios go here — not per-widget hacks.
+
+**Notch/safe areas:** use the Safe Zone parent (CommonUI) or read `GSafeZone_Template` margins instead of hardcoding top offsets.
+
+Pitfall: a Canvas Panel with absolute pixel positions never adapts — anchor children or switch to Horizontal/Vertical Box for anything resolution-sensitive.
+
 ### WidgetComponent (3D World Widgets)
 
 `UWidgetComponent` attaches a UMG widget to an Actor in the 3D world (health bars, nameplates):
@@ -1291,6 +1442,12 @@ WComp->RequestRedraw();  // required for Screen space
 ```
 
 Widget name is found in the Widget BP Designer → Hierarchy panel.
+
+### Editor Utility Widgets
+
+UMG for editor tooling: Content Browser → Blueprint Class → **Editor Utility Widget** — a widget you can dock in the
+editor (right-click → Run) to drive batch operations. Pair with `UEditorSubsystem` (see §Subsystems) for state, and
+Blueprint nodes like `Get All Actors With Tag` + loop for bulk edits. Ships only in the editor — never in packaged builds.
 
 ---
 
@@ -1396,7 +1553,7 @@ Import VDB volumetric data (smoke, explosions) into Niagara and render as Sparse
 
 ## Enhanced Input
 
-UE5's modern input system (replaces legacy Axis/Action mappings from UE4).
+UE5's modern input system (replaces legacy Axis/Action mappings from UE4; plugin enabled by default since UE 5.1 — on 5.0 enable "Enhanced Input" in Plugins manually).
 
 ### Core Concepts
 
@@ -1460,6 +1617,15 @@ If ConstructorHelpers fails (IMC array empty), fallback in `BeginPlay`:
 UInputMappingContext* IMC = LoadObject<UInputMappingContext>(nullptr, TEXT("/Game/Input/IMC_Fused.IMC_Fused"));
 if (IMC) DefaultMappingContexts.Add(IMC);
 ```
+
+### Touch Input
+
+Enhanced Input handles touch like any other key:
+
+- Map **Touch** (finger index 1..10) or **Pointer** keys in an Input Mapping Context like keyboard keys — e.g. an action bound to `Touch 1` fires on finger press; combine with modifiers (Swipe gesture via two-axis value)
+- Multi-touch = several simultaneous actions, one per finger binding
+- UMG Buttons/Sliders respond to touch natively — no extra input wiring needed for menu UI
+- Mobile haptics: `PlayHapticEffect` from the player controller
 
 ### Trigger Events
 
@@ -1582,6 +1748,19 @@ if (IsLocallyControlled())
 - RPCs must be called from the correct side (Server RPC → called only on client). Calling a Server RPC from the server → ignored.
 - Forget to add `GetLifetimeReplicatedProps` → properties don't replicate, no warning.
 - Replicated properties only sync server→client. Clients never modify replicated properties directly — use Server RPCs to request server state changes.
+
+### Dedicated Servers
+
+Server-only build with no local player (no rendering, no UI, no local input) — for hosted multiplayer:
+
+1. Create `MyGameServer.Target.cs` alongside the game target: `TargetType = TargetType.Server` (module list usually mirrors the game target)
+2. Build/package it: **Platforms → Windows → Package Project** (pick the Server target), or via UBT command line — output lands in `<Platform>Server/`
+3. Run `MyGameServer.exe -log` — listens on port 7777 by default
+4. Clients connect: in-game console `open 127.0.0.1:7777`
+
+Differences to expect: GameMode runs (server-only anyway), PlayerControllers exist only for connected clients, and
+anything UI/camera/local-player related must be guarded (`IsLocalPlayerController()`).
+Listen servers (Open Level `?listen`) are the lighter-weight alternative for co-op with a hosting player.
 
 ---
 
@@ -1897,7 +2076,7 @@ The Model Context Protocol enables AI assistants to control Unreal Editor throug
 
 | Issue | Fix |
 |---|---|
-| `ANY_PACKAGE` undeclared (removed in 5.8) | Replace with `nullptr` in `FindObject<UClass>(nullptr, ...)` |
+| `ANY_PACKAGE` undeclared (macro removed in UE 5.5; surfaces when building older plugins on 5.5+) | Replace with `nullptr` in `FindObject<UClass>(nullptr, ...)` |
 | `BufferSize` shadows engine `StringConv.h` | Rename local `BufferSize` → `MCPSocketBufferSize` |
 | `add_component_to_blueprint` fails for `StaticMeshComponent` | Known limitation — `FindObject<UClass>` can't resolve at MCP call time |
 | StaticMesh not assignable to spawned Actor via `set_actor_property` | MCP only sets Actor-level properties, not component sub-properties |
@@ -1956,6 +2135,19 @@ Symptom: Flickering, artifacts, or crash mentioning D3D12.
 - Relaunch the editor. When prompted, UE will offer to recover unsaved changes.
 - Recovered assets appear in the **Recovery Hub** on editor restart.
 - Auto-save interval: Editor Preferences → Loading & Saving → Auto-Save → set to 5 minutes.
+
+### Packaged Build Crashes (Crash Reporter)
+
+Works in editor, crashes as packaged exe — debug path:
+
+1. **Launch with a console**: `MyGame.exe -log` (Development build) — full output in the window and in `<ProjectDir>/Saved/Logs/MyGame.log`
+2. **Crash artifacts**: `<ProjectDir>/Saved/Crashes/CrashContext-<id>/` — contains the callstack XML + log. The Crash Report Client uploads these; the local copy survives either way
+3. **Symbols**: crashes in a Development build resolve to function names only if the matching PDB (from that
+   packaging run's `Binaries/Win64/`) is kept. Shipping builds log to `%LOCALAPPDATA%/<Company>/<Project>/Saved/Logs`
+   and rarely symbolize — reproduce in Development instead
+4. Classic editor-only-code culprits: `WITH_EDITOR`-wrapped logic, editor subsystems, `DrawDebugLine` (stripped in Shipping), assets excluded from cooking (silently null)
+
+Editor crash logs live in the same `Saved/Crashes/` + `Saved/Logs/` structure inside the project directory.
 
 ### Output Log Search Guide
 
@@ -2183,19 +2375,16 @@ Generate an interactive project knowledge graph for AI agents:
 
 Scanned 95 Source files in ThirdPersonTest, producing 201 nodes + 92 edges across 7 architecture layers.
 
-### opencode MCP Launch Prerequisite
+### opencode MCP Configuration
 
-opencode's MCP connection to Unreal Editor requires the agent to be launched FROM the project directory:
+Two valid configurations for connecting opencode to the Unreal Editor MCP:
 
-```powershell
-# ❌ MCP won't connect
-C:\> opencode
+1. **Global (recommended)** — add the server once in `~/.config/opencode/opencode.json` (see Community MCP Deployment above); works from any working directory, one config drives all UE projects that run the plugin.
+2. **Per-project `.mcp.json`** — the `UnrealMCP` plugin can generate a client config at the project root; opencode
+   picks it up **only when launched from that project directory** (`<your-project-path>> opencode`).
+   Choose this when different projects pin different plugin versions.
 
-# ✅ MCP connects (needs .mcp.json at working dir)
-<your-project-path>> opencode
-```
-
-The `.mcp.json` at the project root (generated by `UnrealMCP` plugin's `GenerateClientConfig`) is only discovered when opencode starts in that directory.
+Either way the editor must be running with the plugin's TCP server active — the Python bridge connects into the editor process.
 
 ### Enabling LSP (C++ Diagnostics) for UE Projects
 
@@ -2247,10 +2436,25 @@ DECLARE_DYNAMIC_DELEGATE(FMyDynDelegate);                   // single-cast, BP-e
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);               // multi-cast, BP Event Dispatcher
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamage, float, Amount);
 
-// Usage
-FOnDeath OnDeath;
-OnDeath.Broadcast();  // multi-cast equivalent of Execute
+// Full pattern: UPROPERTY(BlueprintAssignable) is REQUIRED for the delegate
+// to appear in Blueprint's Details → Events list — without it BP cannot bind!
+UCLASS()
+class AMyCharacter : public ACharacter
+{
+    GENERATED_BODY()
+public:
+    UPROPERTY(BlueprintAssignable)   // ← exposes OnDeath as a bindable BP event
+    FOnDeath OnDeath;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnDamage OnDamage;
+};
+
+// C++ side fires it:
+OnDeath.Broadcast();
 ```
+
+Note: `DECLARE_MULTICAST_DELEGATE` (C++-only multi-cast, no `UPROPERTY(BlueprintAssignable)` — not visible to Blueprint) covers the fourth combination in the table below.
 
 ### When to use which
 

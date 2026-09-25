@@ -2,10 +2,41 @@ Copyright (C) 2026 ZionXiaoxiSuOGLocGo
 SPDX-License-Identifier: GPL-3.0-or-later
 # unreal-manual Changelog
 
-## [Unreleased]
+## [2.3.0] - 2026-09-24 — Usability Audit Round
+**Source**: usage-driven audit — retrieval tests (4 questions), gap tests (12 domains), subagent blind tests
+
 ### Fixed
 - Restore CHANGELOG body to pristine v2.2.1 content: the 2026-06-30 security pass re-encoded the file and corrupted
   every non-ASCII character (em-dashes, arrows) into U+FFFD mojibake. Body is now byte-identical to the initial
+  baseline; copyright header re-applied.
+- C++ Delegates: added the missing `UPROPERTY(BlueprintAssignable)` pattern — without it dynamic multicast
+  delegates never appear in Blueprint's Events list (previous answer was un-executable); noted the 4th
+  DECLARE_MULTICAST_DELEGATE combination
+- ANY_PACKAGE removal version unified to UE 5.5 (MCP compatibility table claimed 5.8)
+- StateTree retitled "(UE 5.4+ Templates)" with 5.0–5.2 experimental note; Behavior Trees no longer
+  dismissed as legacy — documented as still widespread (new chapter)
+- Enhanced Input: version gate noted (plugin enabled by default since 5.1)
+- Terminology: "custom inspectors" → property editors; Unity-coroutine aside now defers to the Appendix
+
+### Added
+- **Symptom Router** table (15 symptom → section rows) at the top
+- **Navigation & AI Movement** chapter — NavMeshBoundsVolume setup, P-key visualization, AI MoveTo /
+  AAIController::MoveTo, MOVE_NavWalking, reachability pitfalls
+- **Behavior Trees** chapter — Blackboard, composites, tasks/decorators/services, EQS, BT vs StateTree guidance
+- Character Movement: RotationRate, bOrientRotationToMovement, GroundFriction, BrakingFrictionFactor rows
+  + feel-tuning cheat sheet (floaty / icy / sluggish-turn fixes)
+- **UMG Responsive Layout** — anchors table, DPI Scale Rule, safe zones, absolute-Canvas pitfall
+- **Packaged Build Crashes (Crash Reporter)** — Saved/Crashes, -log, PDB symbols, editor-only culprits
+- **Blueprint Function Library** section (BP library + UBlueprintFunctionLibrary C++ pattern)
+- **Physics Constraints** section — Actor/component/handle forms, constraint types table, pitfalls
+- **Dedicated Servers** section — Server.Target.cs, packaging, client connect, listen-server alternative
+- **Sequencer (Cinematics)** chapter — vs Blueprint Timeline, Event track, camera cuts
+- Touch Input note (Enhanced Input) and Editor Utility Widgets note (UMG)
+- MCP configuration section rewritten: global opencode.json (current practice) vs per-project .mcp.json
+- Frontmatter keywords +13 (NavMesh, pathfinding, Behavior Tree, Blackboard, StateTree, Sequencer,
+  dedicated server, crash report, touch input, anchors, DPI scale, physics constraint, function library)
+
+## [2.2.1] - 2026-06-30 — Audit Bug Fixes
   baseline; copyright header re-applied.
 
 ## [2.2.1] - 2026-06-30 — Audit Bug Fixes
