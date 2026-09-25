@@ -24,7 +24,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   AAIController::MoveTo, MOVE_NavWalking, reachability pitfalls
 - **Behavior Trees** chapter — Blackboard, composites, tasks/decorators/services, EQS, BT vs StateTree guidance
 - Character Movement: RotationRate, bOrientRotationToMovement, GroundFriction, BrakingFrictionFactor rows
-  + feel-tuning cheat sheet (floaty / icy / sluggish-turn fixes)
+  - feel-tuning cheat sheet (floaty / icy / sluggish-turn fixes)
 - **UMG Responsive Layout** — anchors table, DPI Scale Rule, safe zones, absolute-Canvas pitfall
 - **Packaged Build Crashes (Crash Reporter)** — Saved/Crashes, -log, PDB symbols, editor-only culprits
 - **Blueprint Function Library** section (BP library + UBlueprintFunctionLibrary C++ pattern)
